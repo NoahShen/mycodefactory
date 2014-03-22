@@ -24,3 +24,7 @@ _testmain.go
 #python compiled file
 *.pyc
 
+*.iml
+target
+.idea
+.DS_Store
