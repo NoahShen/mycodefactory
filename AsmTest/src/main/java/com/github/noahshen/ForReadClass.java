@@ -23,6 +23,7 @@ public class ForReadClass {
         StringBuilder sb = new StringBuilder(2);
         List<Integer> tempList = Arrays.asList(i, 3);
         System.out.println(sb.append(intField).append(tempList));
-        StringUtils.lastIndexOf("noahshen", (char) 10);
+        String s = "123";
+        int l = StringUtils.lastIndexOf("noahshen", s);
     }
 }
