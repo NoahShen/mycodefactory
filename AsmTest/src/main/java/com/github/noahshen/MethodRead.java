@@ -7,7 +7,9 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -20,60 +22,52 @@ import java.util.List;
 public class MethodRead {
 
     public static void main(String[] args) throws IOException {
-        ClassReader reader = new ClassReader("com.github.noahshen.ForReadClass");
-        ClassNode cn = new ClassNode();
-        reader.accept(cn, 0);
-        List<MethodNode> methodList = cn.methods;
-        for (MethodNode md : methodList) {
-            if (!"methodA".equals(md.name)) {
+        List<Class<?>> classList = ClassUtils.getClassList("com.github", true);
+        for (Class<?> clazz : classList) {
+            ClassReader reader = new ClassReader(clazz.getName());
+            ClassNode cn = new ClassNode();
+            reader.accept(cn, 0);
+            String owner = "org/apache/commons/lang/StringUtils";
+            String name = "lastIndexOf";
+            MethodInsnNode mNode = getInvokeMethodNode(cn, owner, name);
+            if (mNode == null) {
                 continue;
             }
-            System.out.printf("methodName: %s, access: %s, desc: %s, sig: %s\n", md.name, md.access, md.desc, md.signature);
-            List<LocalVariableNode> lvNodeList = md.localVariables;
-            for (LocalVariableNode lvn : lvNodeList) {
-                System.out.printf("\tLocal name: %s, startLabel:%s, desc: %s, sig:%s\n",
-                        lvn.name, lvn.start.getLabel(), lvn.desc, lvn.signature);
-            }
-            Iterator<AbstractInsnNode> instraIter = md.instructions.iterator();
-            while (instraIter.hasNext()) {
-                AbstractInsnNode aNode = instraIter.next();
-                if (aNode instanceof MethodInsnNode) {
-                    MethodInsnNode mNode = (MethodInsnNode) aNode;
-                    if ("org/apache/commons/lang/StringUtils".equals(mNode.owner)
-                            && "lastIndexOf".equals(mNode.name)) {
-                        AbstractInsnNode temp = mNode.getPrevious();
-                        while (temp != null && !(temp instanceof LineNumberNode)) {
-                            if (temp instanceof LdcInsnNode) {
-                                LdcInsnNode paramNode = (LdcInsnNode) temp;
-                                System.out.printf("\tparamNode value: %s\n", paramNode.cst);
-                            }
-                            temp = temp.getPrevious();
-                        }
-                    }
-//                    System.out.printf("\tmNode value[owner=%s, name=%s, desc=%s\n", mNode.owner, mNode.name, mNode.desc);
+            List<AbstractInsnNode> paramNodes = getParamNodes(mNode);
+            System.out.println(paramNodes);
+        }
+    }
 
+    private static MethodInsnNode getInvokeMethodNode(ClassNode cn, String owner, String name) {
+        List<MethodNode> methodList = cn.methods;
+        for (MethodNode md : methodList) {
+            Iterator<AbstractInsnNode> it = md.instructions.iterator();
+            while (it.hasNext()) {
+                AbstractInsnNode aNode = it.next();
+                if (!(aNode instanceof MethodInsnNode)) {
+                    continue;
+                }
+                MethodInsnNode mNode = (MethodInsnNode) aNode;
+                if (owner.equals(mNode.owner)
+                        && name.equals(mNode.name)) {
+                    return mNode;
                 }
             }
         }
+        return null;
+    }
 
-
-//        MethodVisitor mv = cn.visitMethod(Opcodes.AALOAD, "<init>", Type
-//                .getType(String.class).toString(), null, null);
-//        mv.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(String.class), "str", Type
-//                .getType(String.class).toString());
-//        System.out.println(cn.name);
-//        List<FieldNode> fieldList = cn.fields;
-//        for (FieldNode fieldNode : fieldList) {
-//            System.out.println("Field name: " + fieldNode.name);
-//            System.out.println("Field desc: " + fieldNode.desc);
-//            System.out.println("Filed value: " + fieldNode.value);
-//            System.out.println("Filed access: " + fieldNode.access);
-//            if (fieldNode.visibleAnnotations != null) {
-//                for (Object anNodeObj : fieldNode.visibleAnnotations) {
-//                    System.out.println(((AnnotationNode) anNodeObj).desc);
-//                }
+    private static List<AbstractInsnNode> getParamNodes(MethodInsnNode mNode) {
+        List<AbstractInsnNode> paramNodes = new LinkedList<AbstractInsnNode>();
+        AbstractInsnNode temp = mNode.getPrevious();
+        while (temp != null && !(temp instanceof LineNumberNode)) {
+//            if (temp instanceof LdcInsnNode) {
+//                LdcInsnNode paramNode = (LdcInsnNode) temp;
+//                System.out.printf("\tparamNode value: %s\n", paramNode.cst);
 //            }
-//        }
-
+            paramNodes.add(0, temp);
+            temp = temp.getPrevious();
+        }
+        return paramNodes;
     }
 }
