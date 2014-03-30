@@ -27,14 +27,15 @@ public class MethodRead {
             ClassReader reader = new ClassReader(clazz.getName());
             ClassNode cn = new ClassNode();
             reader.accept(cn, 0);
-            String owner = "org/apache/commons/lang/StringUtils";
-            String name = "lastIndexOf";
+            String owner = "com/github/noahshen/LogUtils";
+            String name = "log";
             MethodInsnNode mNode = getInvokeMethodNode(cn, owner, name);
             if (mNode == null) {
                 continue;
             }
-            List<AbstractInsnNode> paramNodes = getParamNodes(mNode);
-            System.out.println(paramNodes);
+            ScanResult result = getParamNodes(mNode);
+            result.setClazz(clazz.getName());
+            System.out.println(result);
         }
     }
 
@@ -57,17 +58,29 @@ public class MethodRead {
         return null;
     }
 
-    private static List<AbstractInsnNode> getParamNodes(MethodInsnNode mNode) {
+    private static ScanResult getParamNodes(MethodInsnNode mNode) {
+        ScanResult result = new ScanResult();
         List<AbstractInsnNode> paramNodes = new LinkedList<AbstractInsnNode>();
         AbstractInsnNode temp = mNode.getPrevious();
-        while (temp != null && !(temp instanceof LineNumberNode)) {
-//            if (temp instanceof LdcInsnNode) {
-//                LdcInsnNode paramNode = (LdcInsnNode) temp;
-//                System.out.printf("\tparamNode value: %s\n", paramNode.cst);
-//            }
+        while (temp != null) {
+            if (temp instanceof LineNumberNode) {
+                LineNumberNode lineNode = (LineNumberNode) temp;
+                result.setLine(lineNode.line);
+                break;
+            }
             paramNodes.add(0, temp);
             temp = temp.getPrevious();
         }
-        return paramNodes;
+
+        for (AbstractInsnNode node : paramNodes) {
+            if (node instanceof FieldInsnNode) {
+                FieldInsnNode fNode = (FieldInsnNode) node;
+                result.setLogType(fNode.name);
+            } else if (node instanceof LdcInsnNode) {
+                LdcInsnNode ldcNode = (LdcInsnNode) node;
+                result.setLogMethodName((String) ldcNode.cst);
+            }
+        }
+        return result;
     }
 }
