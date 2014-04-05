@@ -29,4 +29,4 @@ target
 .idea
 .DS_Store
 github.com
-
+bin/
