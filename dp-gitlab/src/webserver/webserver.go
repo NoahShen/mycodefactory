@@ -81,5 +81,4 @@ func loginWithNameAndPwd(r *http.Request, res http.ResponseWriter, params martin
 	uInfo := &UserInfo{&gitUser, gitlabClient}
 	session.Set(constant.UserInfoKey, uInfo)
 	render.HTML(200, "dashboard", uInfo)
-	//try JSON
 }
