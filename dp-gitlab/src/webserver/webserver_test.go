@@ -1,7 +1,6 @@
 package webserver
 
 import (
-	"os"
 	"testing"
 )
 

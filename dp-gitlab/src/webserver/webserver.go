@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 	"filter"
 	"github.com/NoahShen/go-gitlab-client"
-	"github.com/NoahShen/render"
 	"github.com/go-martini/martini"
+	"github.com/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
 	"log"
 	"net/http"
@@ -24,7 +24,6 @@ func StartServer() {
 	m.Use(render.Renderer(render.Options{
 		Directory: "../../web/templates",
 	}))
-
 	store := sessions.NewCookieStore([]byte("secretDpGitLab"))
 	store.Options(sessions.Options{
 		MaxAge: int(constant.SessionMaxAge),
@@ -63,22 +62,22 @@ func loginWithNameAndPwd(r *http.Request, res http.ResponseWriter, params martin
 	}
 
 	username := r.PostFormValue("username")
-	password := r.PostFormValue("password")
+	//password := r.PostFormValue("password")
 
 	l.Printf("Start logging in, username = %s \n", username)
-	gitlabClient, err := gogitlab.NewGitlabByLogin(constant.GitLabHost, constant.GitLabApiPath, username, password)
-	if err != nil {
-		l.Printf("Login error: %v\n", err)
-		render.HTML(200, "error", "登录失败！")
-		return
-	}
-	gitUser, err := gitlabClient.CurrentUser()
-	if err != nil {
-		l.Printf("Get current error: %v\n", err)
-		render.HTML(200, "error", "登录失败！")
-		return
-	}
-	uInfo := &UserInfo{&gitUser, gitlabClient}
+	//gitlabClient, err := gogitlab.NewGitlabByLogin(constant.GitLabHost, constant.GitLabApiPath, username, password)
+	//if err != nil {
+	//	l.Printf("Login error: %v\n", err)
+	//	render.HTML(200, "error", "登录失败！")
+	//	return
+	//}
+	//gitUser, err := gitlabClient.CurrentUser()
+	//if err != nil {
+	//	l.Printf("Get current error: %v\n", err)
+	//	render.HTML(200, "error", "登录失败！")
+	//	return
+	//}
+	uInfo := &UserInfo{}
 	session.Set(constant.UserInfoKey, uInfo)
 	render.HTML(200, "dashboard", uInfo)
 }

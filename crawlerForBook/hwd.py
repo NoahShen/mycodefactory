@@ -9,22 +9,30 @@ def get_title(index, node):
     title = chapterItem.attr('title')
     chapterUrl = chapterItem.attr("href")
 
-    print "row:%d, title: %s, url=%s \n" % (index, title, chapterUrl)
-    if index >= 1056:
+    if index >= 1055:
+        print "row:%d, title: %s, url=%s \n" % (index, title, chapterUrl)
     	chapterDoc = pq(url=chapterUrl)
-    	p = chapterDoc(".content p:first")
-    	elements = p.contents()
-    	titleStr = ("%s\n" % (title)).encode("UTF-8")
-    	hwd_file.write(titleStr)
-    	for e in elements:
-    		write_content(e)
-				
+        titleStr = ("%s\n" % (title)).encode("UTF-8")
+        hwd_file.write(titleStr)
+    	pElements = chapterDoc(".content").children()
+        pElements.each(filterContentP)
+    	
+
+def filterContentP(index, node):
+    paragraph = pq(node)
+    if paragraph.hasClass("navi"):
+        return False
+        
+    elements = paragraph.contents()
+    for e in elements:
+        write_content(e)
+
 
 def write_content(e):
 	if isinstance(e, basestring):
-		content = ("%s\n" % e).encode("UTF-8")
+		content = ("%s\n\n" % e).encode("UTF-8")
 		hwd_file.write(content)
 
 doc = pq(url="http://www.mossiella.com/")
 doc(".box ul a").each(get_title)
-hwd_file.close( )
+hwd_file.close()

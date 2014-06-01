@@ -2,8 +2,8 @@ package filter
 
 import (
 	"constant"
-	"github.com/NoahShen/render"
 	"github.com/go-martini/martini"
+	"github.com/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
 	"log"
 	"net/http"
