@@ -6,6 +6,10 @@ import urllib
 import json
 import copy
 
+
+import smtplib  
+from email.mime.text import MIMEText
+
 def get_server(index, node):
     server_elem = pq(node)
     content = server_elem.find("strong");
@@ -58,37 +62,73 @@ def server_info_to_str(server_info):
     return u'服务器信息=%s \n' % (json.dumps(server_info, sort_keys=False, indent=4, ensure_ascii=False))
 
 
-last_server_infos = []
 
-sserver_file_for_read = open('sserver.json', 'r')
-all_content = sserver_file_for_read.read()
-if len(all_content) > 0:
-    last_server_infos = json.loads(all_content)
+mailto_list=["NoahShen@outlook.com"] 
+mail_host="smtp.126.com"  #设置服务器
+mail_user="ssserverchecker"    #用户名
+mail_pass="159357ABCD"   #口令 
+mail_postfix="126.com"  #发件箱的后缀
+  
+def send_mail(to_list, sub, content):  #to_list：收件人；sub：主题；content：邮件内容
+    me="hello"+"<"+mail_user+"@"+mail_postfix+">"   #这里的hello可以任意设置，收到信后，将按照设置显示
+    msg = MIMEText(content, _subtype='html', _charset='utf8')    #创建一个实例，这里设置为html格式邮件
+    msg['Subject'] = sub    #设置主题
+    msg['From'] = me  
+    msg['To'] = ";".join(to_list)  
+    try:  
+        s = smtplib.SMTP()  
+        s.connect(mail_host)  #连接smtp服务器
+        s.login(mail_user,mail_pass)  #登陆服务器
+        s.sendmail(me, to_list, msg.as_string())  #发送邮件
+        s.close()  
+        return True  
+    except Exception, e:  
+        print str(e)  
+        return False
 
-print "上次获取的服务器："
-print server_infos_to_str(last_server_infos)
-
-print "获取最新的服务器信息..."
 new_server_infos = []
-doc = pq(url="http://boafanx.tabboa.com/boafanx-ss/")
-doc(".post-content p").filter(lambda i: pq(this).find("strong").length > 0).each(get_server)
-print server_infos_to_str(new_server_infos)
 
-print "比较服务器信息...\n"
-updated_info = compare_server_info(new_server_infos, last_server_infos)
-server_changed = False
-if len(updated_info.get("updated_server_msg","")) > 0:
-    print "更新的服务器："
-    print updated_info["updated_server_msg"]
-    server_changed = True
-if len(updated_info.get("new_server_msg", "")) > 0:
-    print "新增的服务器："
-    print updated_info["new_server_msg"]
-    server_changed = True
+if __name__ == '__main__': 
+    last_server_infos = []
+    sserver_file_for_read = open('sserver.json', 'r')
+    all_content = sserver_file_for_read.read()
+    sserver_file_for_read.close()
 
-if not server_changed:
-    print "无更新信息！"
+    if len(all_content) > 0:
+        last_server_infos = json.loads(all_content)
 
-sserver_file_for_write = open('sserver.json', 'w')
-sserver_file_for_write.write(json.dumps(new_server_infos, sort_keys=False, indent=4, ensure_ascii=False).encode('utf-8'))
-sserver_file_for_write.close()
+    print "上次获取的服务器："
+    print server_infos_to_str(last_server_infos)
+
+    print "获取最新的服务器信息..."
+    doc = pq(url="http://boafanx.tabboa.com/boafanx-ss/")
+    doc(".post-content p").filter(lambda i: pq(this).find("strong").length > 0).each(get_server)
+    print server_infos_to_str(new_server_infos)
+
+    print "比较服务器信息...\n"
+    updated_info = compare_server_info(new_server_infos, last_server_infos)
+    mail_content = ""
+    server_changed = False
+    if len(updated_info.get("updated_server_msg","")) > 0:
+        print "更新的服务器："
+        print updated_info["updated_server_msg"]
+        mail_content += updated_info["updated_server_msg"]
+        server_changed = True
+    if len(updated_info.get("new_server_msg", "")) > 0:
+        print "新增的服务器："
+        print updated_info["new_server_msg"]
+        mail_content += updated_info["new_server_msg"]
+        server_changed = True
+
+    if not server_changed:
+        print "无更新信息！"
+    else:
+        if send_mail(mailto_list, "Shadowsocks server", mail_content):
+            print "通知邮件发送成功！"
+        else:
+            print "通知邮件发送失败！"
+
+
+    sserver_file_for_write = open('sserver.json', 'w')
+    sserver_file_for_write.write(json.dumps(new_server_infos, sort_keys=False, indent=4, ensure_ascii=False).encode('utf-8'))
+    sserver_file_for_write.close()
