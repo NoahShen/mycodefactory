@@ -12,7 +12,9 @@ from email.mime.text import MIMEText
 
 import os
 import logging
-logging.basicConfig(filename = os.path.join(os.getcwd(), 'sserver.log'), level = logging.INFO, filemode = 'a', format = '%(asctime)s - %(levelname)s: %(message)s')
+
+current_path = os.path.split(os.path.realpath(__file__))[0]
+logging.basicConfig(filename = current_path + '/ssserver.log', level = logging.INFO, filemode = 'a', format = '%(asctime)s - %(levelname)s: %(message)s')
 
 
 def get_server(index, node):
@@ -64,7 +66,7 @@ def server_infos_to_str(new_servers):
     return server_infos_str
 
 def server_info_to_str(server_info):
-    return u'server_info=%s \n' % (json.dumps(server_info, sort_keys=False, indent=4, ensure_ascii=False))
+    return u'server_info=%s \n<br><br>' % (json.dumps(server_info, sort_keys=False, indent=4, ensure_ascii=False))
 
 
 
@@ -96,12 +98,14 @@ new_server_infos = []
 if __name__ == '__main__': 
     logging.info("==================Start checking sserver==================")
     last_server_infos = []
-    sserver_file_for_read = open('sserver.json', 'r')
-    all_content = sserver_file_for_read.read()
-    sserver_file_for_read.close()
-
-    if len(all_content) > 0:
-        last_server_infos = json.loads(all_content)
+    exist = os.path.exists(current_path + '/ssserver.json')
+    all_content = ""
+    if exist:
+        sserver_file_for_read = open(current_path + '/ssserver.json', 'r')
+        all_content = sserver_file_for_read.read()
+        sserver_file_for_read.close()
+        if len(all_content) > 0:
+            last_server_infos = json.loads(all_content)
 
     logging.info("Last server info：\n" + server_infos_to_str(last_server_infos).encode('utf-8'))
 
@@ -116,12 +120,12 @@ if __name__ == '__main__':
     if len(updated_info.get("updated_server_msg","")) > 0:
         logging.info("updated server：")
         logging.info(updated_info["updated_server_msg"].encode('utf-8'))
-        mail_content += u"updated server：<br>%s<br>" % updated_info["updated_server_msg"]
+        mail_content += u"updated server：<br><br>%s<br>" % updated_info["updated_server_msg"]
         server_changed = True
     if len(updated_info.get("new_server_msg", "")) > 0:
         logging.info("added server：")
         logging.info(updated_info["new_server_msg"].encode('utf-8'))
-        mail_content += u"new server：<br>%s<br>" % updated_info["new_server_msg"]
+        mail_content += u"new server：<br><br>%s<br>" % updated_info["new_server_msg"]
         server_changed = True
 
     if not server_changed:
@@ -134,7 +138,7 @@ if __name__ == '__main__':
             logging.info("Send mail failed!")
 
 
-    sserver_file_for_write = open('sserver.json', 'w')
+    sserver_file_for_write = open(current_path + '/ssserver.json', 'w')
     sserver_file_for_write.write(json.dumps(new_server_infos, sort_keys = False, indent = 4, ensure_ascii = False).encode('utf-8'))
     sserver_file_for_write.close()
     logging.info("==================Checking sserver complete==================")
