@@ -51,7 +51,7 @@ def compare_server_detail(new_server, old_server):
     changed = False
     for prop in properties:
         if old_server[prop] != new_server[prop]:
-            updated_server[prop] = "%s_update" % new_server[prop]
+            updated_server[prop] = "<span style='color:red'>%s</span>" % new_server[prop]
             changed = True
 
     if changed:
@@ -64,7 +64,7 @@ def server_infos_to_str(new_servers):
     return server_infos_str
 
 def server_info_to_str(server_info):
-    return u'服务器信息=%s \n' % (json.dumps(server_info, sort_keys=False, indent=4, ensure_ascii=False))
+    return u'server_info=%s \n' % (json.dumps(server_info, sort_keys=False, indent=4, ensure_ascii=False))
 
 
 
@@ -94,7 +94,7 @@ def send_mail(to_list, sub, content):
 new_server_infos = []
 
 if __name__ == '__main__': 
-    logging.info("==================开始比对服务器信息==================")
+    logging.info("==================Start checking sserver==================")
     last_server_infos = []
     sserver_file_for_read = open('sserver.json', 'r')
     all_content = sserver_file_for_read.read()
@@ -103,37 +103,40 @@ if __name__ == '__main__':
     if len(all_content) > 0:
         last_server_infos = json.loads(all_content)
 
-    logging.info("上次获取的服务器：\n" + server_infos_to_str(last_server_infos).encode('utf-8'))
+    logging.info("Last server info：\n" + server_infos_to_str(last_server_infos).encode('utf-8'))
 
     doc = pq(url="http://boafanx.tabboa.com/boafanx-ss/")
     doc(".post-content p").filter(lambda i: pq(this).find("strong").length > 0).each(get_server)
-    logging.info("最新的服务器信息：\n" + server_infos_to_str(new_server_infos).encode('utf-8'))
+    logging.info("New server info：\n" + server_infos_to_str(new_server_infos).encode('utf-8'))
 
-    logging.info("比较服务器信息...")
+    logging.info("Checking server...")
     updated_info = compare_server_info(new_server_infos, last_server_infos)
     mail_content = ""
     server_changed = False
     if len(updated_info.get("updated_server_msg","")) > 0:
-        logging.info("更新的服务器：")
+        logging.info("updated server：")
         logging.info(updated_info["updated_server_msg"].encode('utf-8'))
-        mail_content += updated_info["updated_server_msg"]
+        mail_content += u"updated server：<br>%s<br>" % updated_info["updated_server_msg"]
         server_changed = True
     if len(updated_info.get("new_server_msg", "")) > 0:
-        logging.info("新增的服务器：")
+        logging.info("added server：")
         logging.info(updated_info["new_server_msg"].encode('utf-8'))
-        mail_content += updated_info["new_server_msg"]
+        mail_content += u"new server：<br>%s<br>" % updated_info["new_server_msg"]
         server_changed = True
 
     if not server_changed:
-        logging.info("无更新信息！")
+        logging.info("No updating message!")
     else:
-        if send_mail(mailto_list, "Shadowsocks server", mail_content):
-            logging.info("通知邮件发送成功！")
+        logging.info(u"send mail:\n%s" % mail_content)
+        if send_mail(mailto_list, "Shadowsocks updated", mail_content):
+            logging.info("Send mail success!")
         else:
-            logging.info("通知邮件发送失败！")
+            logging.info("Send mail failed!")
 
 
     sserver_file_for_write = open('sserver.json', 'w')
     sserver_file_for_write.write(json.dumps(new_server_infos, sort_keys = False, indent = 4, ensure_ascii = False).encode('utf-8'))
     sserver_file_for_write.close()
-    logging.info("==================比对服务器信息完毕==================")
+    logging.info("==================Checking sserver complete==================")
+
+
