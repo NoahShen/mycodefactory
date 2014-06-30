@@ -98,12 +98,12 @@ if __name__ == '__main__':
         last_server_infos = json.loads(all_content)
 
     print "上次获取的服务器："
-    print server_infos_to_str(last_server_infos)
+    print server_infos_to_str(last_server_infos).encode('utf-8')
 
     print "获取最新的服务器信息..."
     doc = pq(url="http://boafanx.tabboa.com/boafanx-ss/")
     doc(".post-content p").filter(lambda i: pq(this).find("strong").length > 0).each(get_server)
-    print server_infos_to_str(new_server_infos)
+    print server_infos_to_str(new_server_infos).encode('utf-8')
 
     print "比较服务器信息...\n"
     updated_info = compare_server_info(new_server_infos, last_server_infos)
@@ -111,12 +111,12 @@ if __name__ == '__main__':
     server_changed = False
     if len(updated_info.get("updated_server_msg","")) > 0:
         print "更新的服务器："
-        print updated_info["updated_server_msg"]
+        print updated_info["updated_server_msg"].encode('utf-8')
         mail_content += updated_info["updated_server_msg"]
         server_changed = True
     if len(updated_info.get("new_server_msg", "")) > 0:
         print "新增的服务器："
-        print updated_info["new_server_msg"]
+        print updated_info["new_server_msg"].encode('utf-8')
         mail_content += updated_info["new_server_msg"]
         server_changed = True
 
