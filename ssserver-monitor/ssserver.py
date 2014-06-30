@@ -10,6 +10,11 @@ import copy
 import smtplib  
 from email.mime.text import MIMEText
 
+import os
+import logging
+logging.basicConfig(filename = os.path.join(os.getcwd(), 'sserver.log'), level = logging.INFO, filemode = 'a', format = '%(asctime)s - %(levelname)s: %(message)s')
+
+
 def get_server(index, node):
     server_elem = pq(node)
     content = server_elem.find("strong");
@@ -69,9 +74,9 @@ mail_user="ssserverchecker"    #用户名
 mail_pass="159357ABCD"   #口令 
 mail_postfix="126.com"  #发件箱的后缀
   
-def send_mail(to_list, sub, content):  #to_list：收件人；sub：主题；content：邮件内容
-    me="hello"+"<"+mail_user+"@"+mail_postfix+">"   #这里的hello可以任意设置，收到信后，将按照设置显示
-    msg = MIMEText(content, _subtype='html', _charset='utf8')    #创建一个实例，这里设置为html格式邮件
+def send_mail(to_list, sub, content):
+    me = "%s<%s@%s>" % (mail_user, mail_user, mail_postfix)
+    msg = MIMEText(content, _subtype='html', _charset='utf8')
     msg['Subject'] = sub    #设置主题
     msg['From'] = me  
     msg['To'] = ";".join(to_list)  
@@ -83,12 +88,13 @@ def send_mail(to_list, sub, content):  #to_list：收件人；sub：主题；con
         s.close()  
         return True  
     except Exception, e:  
-        print str(e)  
+        logging.error(str(e))  
         return False
 
 new_server_infos = []
 
 if __name__ == '__main__': 
+    logging.info("==================开始比对服务器信息==================")
     last_server_infos = []
     sserver_file_for_read = open('sserver.json', 'r')
     all_content = sserver_file_for_read.read()
@@ -97,38 +103,37 @@ if __name__ == '__main__':
     if len(all_content) > 0:
         last_server_infos = json.loads(all_content)
 
-    print "上次获取的服务器："
-    print server_infos_to_str(last_server_infos).encode('utf-8')
+    logging.info("上次获取的服务器：\n" + server_infos_to_str(last_server_infos).encode('utf-8'))
 
-    print "获取最新的服务器信息..."
     doc = pq(url="http://boafanx.tabboa.com/boafanx-ss/")
     doc(".post-content p").filter(lambda i: pq(this).find("strong").length > 0).each(get_server)
-    print server_infos_to_str(new_server_infos).encode('utf-8')
+    logging.info("最新的服务器信息：\n" + server_infos_to_str(new_server_infos).encode('utf-8'))
 
-    print "比较服务器信息...\n"
+    logging.info("比较服务器信息...")
     updated_info = compare_server_info(new_server_infos, last_server_infos)
     mail_content = ""
     server_changed = False
     if len(updated_info.get("updated_server_msg","")) > 0:
-        print "更新的服务器："
-        print updated_info["updated_server_msg"].encode('utf-8')
+        logging.info("更新的服务器：")
+        logging.info(updated_info["updated_server_msg"].encode('utf-8'))
         mail_content += updated_info["updated_server_msg"]
         server_changed = True
     if len(updated_info.get("new_server_msg", "")) > 0:
-        print "新增的服务器："
-        print updated_info["new_server_msg"].encode('utf-8')
+        logging.info("新增的服务器：")
+        logging.info(updated_info["new_server_msg"].encode('utf-8'))
         mail_content += updated_info["new_server_msg"]
         server_changed = True
 
     if not server_changed:
-        print "无更新信息！"
+        logging.info("无更新信息！")
     else:
         if send_mail(mailto_list, "Shadowsocks server", mail_content):
-            print "通知邮件发送成功！"
+            logging.info("通知邮件发送成功！")
         else:
-            print "通知邮件发送失败！"
+            logging.info("通知邮件发送失败！")
 
 
     sserver_file_for_write = open('sserver.json', 'w')
-    sserver_file_for_write.write(json.dumps(new_server_infos, sort_keys=False, indent=4, ensure_ascii=False).encode('utf-8'))
+    sserver_file_for_write.write(json.dumps(new_server_infos, sort_keys = False, indent = 4, ensure_ascii = False).encode('utf-8'))
     sserver_file_for_write.close()
+    logging.info("==================比对服务器信息完毕==================")

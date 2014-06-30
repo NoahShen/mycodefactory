@@ -31,4 +31,4 @@ target
 github.com
 bin/
 shadowsocks-monitor
-
+*.log
