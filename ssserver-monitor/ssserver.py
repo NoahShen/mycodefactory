@@ -70,7 +70,7 @@ def server_info_to_str(server_info):
 
 
 
-mailto_list=["NoahShen@outlook.com"] 
+mailto_list=["ssserversuber@126.com"] 
 mail_host="smtp.126.com"  #设置服务器
 mail_user="ssserverchecker"    #用户名
 mail_pass="159357ABCD"   #口令 
