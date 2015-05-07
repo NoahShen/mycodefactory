@@ -32,3 +32,4 @@ github.com
 bin/
 shadowsocks-monitor
 *.log
+build/
