@@ -12,7 +12,7 @@ import org.littleshoot.proxy.{HttpFilters, HttpFiltersAdapter, HttpFiltersSource
 
 object Main extends App {
   val server = DefaultHttpProxyServer.bootstrap()
-    .withAddress(new InetSocketAddress("0.0.0.0", 8080))
+    .withAddress(new InetSocketAddress("0.0.0.0", 7878))
     .withFiltersSource(new PrintFilter)
   server.start()
 }
@@ -26,7 +26,7 @@ class PrintFilter extends HttpFiltersSourceAdapter {
       override def responsePre(obj: HttpObject): HttpObject = {
         ContentResult.fromObject(obj).foreach { result =>
           builder.append(result.content)
-          if(result.last) println(builder.toString()) // 濂姐亶銇嚘鐞嗐倰鍣涖伨銇�
+          if (result.last) println(builder.toString()) // 濂姐亶銇嚘鐞嗐倰鍣涖伨銇�
         }
         obj
       }
