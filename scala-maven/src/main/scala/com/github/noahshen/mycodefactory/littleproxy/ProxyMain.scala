@@ -20,15 +20,17 @@ object Main extends App {
 
 class PrintFilter extends HttpFiltersSourceAdapter {
 
-  val InterceptUrl = "http://qywx.dper.com/app/checkin/loadSign"
+  val LoadLocationUrl = "http://qywx.dper.com/app/checkin/loadSign"
+  val SignUrl = "http://qywx.dper.com/app/checkin/sign"
 
   override def filterRequest(orig: HttpRequest, ctx: ChannelHandlerContext): HttpFilters = {
     println (orig.getUri)
+    val builder = new StringBuilder
     new HttpFiltersAdapter(orig, ctx) {
       override def requestPre(obj: HttpObject): HttpResponse = {
         obj match {
           case res: DefaultHttpRequest =>
-            if (!res.getUri.startsWith(InterceptUrl)) {
+            if (!res.getUri.startsWith(LoadLocationUrl)) {
               return null
             }
             import com.netaporter.uri.dsl._
@@ -55,11 +57,57 @@ class PrintFilter extends HttpFiltersSourceAdapter {
           case _ => null
         }
       }
+
+      /**
+       * {
+    "data": [
+        {
+            "avatar": "http://shp.qpic.cn/bizmp/iciaW8ibhaG6vNRhg4J8mt2ibwUUwzrrsftXfYDib8RwGx5IGibVGFZtjonA/",
+            "name": "XXX",
+            "comment": "愉(yin)快(dang)的一天开始了~",
+            "time": "2015-05-21 22:57:53"
+        },
+        {
+            "avatar": "http://shp.qpic.cn/bizmp/iciaW8ibhaG6vPb1srklrgIibFxoXeYCaMeKJPWMGWANFpe4clZiblDVjjQ/",
+            "name": "XXX",
+            "comment": "愉(yin)快(dang)的一天开始了~",
+            "time": "2015-05-21 22:50:09"
+        },
+        {
+            "avatar": "http://shp.qpic.cn/bizmp/iciaW8ibhaG6vMibtFpGwYpInSHHqKuoPrEajxjN3lXMN6VZ7BDoqqsiaibA/",
+            "name": "XXX",
+            "comment": "愉(yin)快(dang)的一天开始了~",
+            "time": "2015-05-21 22:15:45"
+        }
+    ],
+    "code": 200
+}
+       * @param obj
+       * @return
+       */
+      override def responsePost(obj: HttpObject): HttpObject = {
+        // TODO save response
+            ContentResult.fromObject(obj).foreach { result =>
+              builder.append(result.content)
+              if(result.last) {
+                import scala.util.parsing.json._
+
+                val result = JSON.parseFull(builder.toString())
+
+                result match {
+                  case Some(json: Map[String, Any]) =>
+                    json.get("data").map { signRecords =>
+                      signRecords
+                    }
+                  case None => obj
+                }
+              }
+        }
+        obj
+      }
     }
   }
 }
-
-case class RequestInfo(host: String, path: String, param: Map[String, String])
 
 case class ContentResult(last: Boolean, content: String)
 
