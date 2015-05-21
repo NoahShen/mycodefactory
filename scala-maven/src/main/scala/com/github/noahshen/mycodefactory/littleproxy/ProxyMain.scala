@@ -1,9 +1,10 @@
 package com.github.noahshen.mycodefactory.littleproxy
 
 
-import java.net.InetSocketAddress
+import java.net.{URI, InetSocketAddress}
 import java.nio.charset.Charset
 
+import com.netaporter.uri.Uri
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http._
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer
@@ -19,20 +20,46 @@ object Main extends App {
 
 class PrintFilter extends HttpFiltersSourceAdapter {
 
+  val InterceptUrl = "http://qywx.dper.com/app/checkin/loadSign"
+
   override def filterRequest(orig: HttpRequest, ctx: ChannelHandlerContext): HttpFilters = {
-    println(orig.getUri)
-    val builder = new StringBuilder
+    println (orig.getUri)
     new HttpFiltersAdapter(orig, ctx) {
-      override def responsePre(obj: HttpObject): HttpObject = {
-        ContentResult.fromObject(obj).foreach { result =>
-          builder.append(result.content)
-          if (result.last) println(builder.toString()) // 濂姐亶銇嚘鐞嗐倰鍣涖伨銇�
+      override def requestPre(obj: HttpObject): HttpResponse = {
+        obj match {
+          case res: DefaultHttpRequest =>
+            if (!res.getUri.startsWith(InterceptUrl)) {
+              return null
+            }
+            import com.netaporter.uri.dsl._
+
+            val uri: Uri = res.getUri
+            val r = scala.util.Random
+
+            var oldLat: String = null
+            var oldLong: String = null
+
+            val newUri = uri.mapQuery {
+              case ("latitude", Some(lat)) =>
+                oldLat = lat
+                ("latitude", Some(s"31.21772${r.nextInt(9)}"))
+              case ("longitude", Some(long)) =>
+                oldLong = long
+                ("longitude", Some(s"121.4160${r.nextInt(9)}"))
+              case (n, v) =>
+                (n, v)
+            }
+            val newUrl = newUri.toString()
+            res.setUri(newUrl)
+            null
+          case _ => null
         }
-        obj
       }
     }
   }
 }
+
+case class RequestInfo(host: String, path: String, param: Map[String, String])
 
 case class ContentResult(last: Boolean, content: String)
 
