@@ -11,6 +11,7 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http._
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer
 import org.littleshoot.proxy.{HttpFilters, HttpFiltersAdapter, HttpFiltersSourceAdapter}
+import play.api.libs.json.{JsArray, JsValue, Json}
 
 
 object Main extends App {
@@ -110,8 +111,17 @@ class SignFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpF
     ContentResult.fromObject(obj).foreach { result =>
       builder.append(result.content)
       if (result.last) {
-        import scala.util.parsing.json._
-        val resultJson = JSON.parseFull(builder.toString())
+        val json: JsValue = Json.parse(builder.toString())
+        (json \ "data").asOpt[JsArray].foreach { jsArr =>
+          val firstUserInfo = jsArr(0)
+          val nameOpt = (firstUserInfo \ "name").asOpt[String]
+          val timeOpt = (firstUserInfo \ "time").asOpt[String]
+          if (nameOpt.isDefined && timeOpt.isDefined) {
+            val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
+            val signTime = sdf.parse(timeOpt.get)
+            println(s"${nameOpt.get} sign at ${signTime}")
+          }
+        }
 //        val userInfo = parseUserInfo(resultJson)
 //        println(userInfo)
       }
