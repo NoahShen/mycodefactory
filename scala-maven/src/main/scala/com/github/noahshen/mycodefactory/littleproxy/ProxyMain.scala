@@ -3,6 +3,8 @@ package com.github.noahshen.mycodefactory.littleproxy
 
 import java.net.{URI, InetSocketAddress}
 import java.nio.charset.Charset
+import java.text.SimpleDateFormat
+import java.util.Date
 
 import com.netaporter.uri.Uri
 import io.netty.channel.ChannelHandlerContext
@@ -14,52 +16,70 @@ import org.littleshoot.proxy.{HttpFilters, HttpFiltersAdapter, HttpFiltersSource
 object Main extends App {
   val server = DefaultHttpProxyServer.bootstrap()
     .withAddress(new InetSocketAddress("0.0.0.0", 7878))
-    .withFiltersSource(new PrintFilter)
+    .withFiltersSource(new SignFilterAdapter)
   server.start()
 }
 
-class PrintFilter extends HttpFiltersSourceAdapter {
+class DefaultFilter extends HttpFilters {
+  override def responsePre(httpObject: HttpObject): HttpObject = {httpObject}
 
+  override def requestPre(httpObject: HttpObject): HttpResponse = {null}
+
+  override def responsePost(httpObject: HttpObject): HttpObject = {httpObject}
+
+  override def requestPost(httpObject: HttpObject): HttpResponse = {null}
+}
+
+object LoadLocationFilter {
   val LoadLocationUrl = "http://qywx.dper.com/app/checkin/loadSign"
+
+}
+class LoadLocationFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpFiltersAdapter(request, ctx) {
+
+  override def requestPre(obj: HttpObject): HttpResponse = {
+    obj match {
+      case res: DefaultHttpRequest =>
+
+        import com.netaporter.uri.dsl._
+
+        val uri: Uri = res.getUri
+        val r = scala.util.Random
+
+        var oldLat: String = null
+        var oldLong: String = null
+
+        val newUri = uri.mapQuery {
+          case ("latitude", Some(lat)) =>
+            oldLat = lat
+            ("latitude", Some(s"31.21772${r.nextInt(9)}"))
+          case ("longitude", Some(long)) =>
+            oldLong = long
+            ("longitude", Some(s"121.4160${r.nextInt(9)}"))
+          case (n, v) =>
+            (n, v)
+        }
+        val newUrl = newUri.toString()
+        res.setUri(newUrl)
+        null
+      case _ => null
+    }
+  }
+}
+
+case class SignedUserInfo(name: String, time: Date)
+
+object SignFilter {
   val SignUrl = "http://qywx.dper.com/app/checkin/sign"
 
-  override def filterRequest(orig: HttpRequest, ctx: ChannelHandlerContext): HttpFilters = {
-    println (orig.getUri)
-    val builder = new StringBuilder
-    new HttpFiltersAdapter(orig, ctx) {
-      override def requestPre(obj: HttpObject): HttpResponse = {
-        obj match {
-          case res: DefaultHttpRequest =>
-            if (!res.getUri.startsWith(LoadLocationUrl)) {
-              return null
-            }
-            import com.netaporter.uri.dsl._
+}
+class SignFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpFiltersAdapter(request, ctx) {
 
-            val uri: Uri = res.getUri
-            val r = scala.util.Random
+  val builder = new StringBuilder
 
-            var oldLat: String = null
-            var oldLong: String = null
 
-            val newUri = uri.mapQuery {
-              case ("latitude", Some(lat)) =>
-                oldLat = lat
-                ("latitude", Some(s"31.21772${r.nextInt(9)}"))
-              case ("longitude", Some(long)) =>
-                oldLong = long
-                ("longitude", Some(s"121.4160${r.nextInt(9)}"))
-              case (n, v) =>
-                (n, v)
-            }
-            val newUrl = newUri.toString()
-            res.setUri(newUrl)
-            null
-          case _ => null
-        }
-      }
-
-      /**
-       * {
+  /**
+   *
+   * {
     "data": [
         {
             "avatar": "http://shp.qpic.cn/bizmp/iciaW8ibhaG6vNRhg4J8mt2ibwUUwzrrsftXfYDib8RwGx5IGibVGFZtjonA/",
@@ -82,30 +102,56 @@ class PrintFilter extends HttpFiltersSourceAdapter {
     ],
     "code": 200
 }
-       * @param obj
-       * @return
-       */
-      override def responsePost(obj: HttpObject): HttpObject = {
-        // TODO save response
-            ContentResult.fromObject(obj).foreach { result =>
-              builder.append(result.content)
-              if(result.last) {
-                import scala.util.parsing.json._
-
-                val result = JSON.parseFull(builder.toString())
-
-                result match {
-                  case Some(json: Map[String, Any]) =>
-                    json.get("data").map { signRecords =>
-                      signRecords
-                    }
-                  case None => obj
-                }
-              }
-        }
-        obj
+   * @param obj
+   * @return
+   */
+  override def responsePost(obj: HttpObject): HttpObject = {
+    // TODO save response
+    ContentResult.fromObject(obj).foreach { result =>
+      builder.append(result.content)
+      if (result.last) {
+        import scala.util.parsing.json._
+        val resultJson = JSON.parseFull(builder.toString())
+//        val userInfo = parseUserInfo(resultJson)
+//        println(userInfo)
       }
     }
+    obj
+  }
+//
+//  def parseUserInfo(resultJson: Option[Any]): Option[SignedUserInfo] = {
+//    var employeeName: Option[String] = None
+//    var signTime: Option[Date] = None
+//    resultJson match {
+//      case Some(json: Map[String, Any]) =>
+//        json.get("data").map {  =>
+//          case signRecords: List =>
+//            signRecords.headOption.map {
+//              case Some(("name", name:String)) =>
+//                employeeName = Some(name)
+//              case Some(("time", time:String)) =>
+//                val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
+//                signTime = Some(sdf.parse(time))
+//            }
+//        }
+//      case None => None
+//    }
+//    if (employeeName.isDefined && signTime.isDefined) {
+//      return Some(SignedUserInfo(employeeName.get, signTime.get))
+//    }
+//    return None
+//  }
+}
+
+class SignFilterAdapter extends HttpFiltersSourceAdapter {
+
+  override def filterRequest(orig: HttpRequest, ctx: ChannelHandlerContext): HttpFilters = {
+    if (orig.getUri.startsWith(LoadLocationFilter.LoadLocationUrl)) {
+      return new LoadLocationFilter(orig, ctx)
+    } else if (orig.getUri.startsWith(SignFilter.SignUrl)){
+      return new SignFilter(orig, ctx)
+    }
+    return new DefaultFilter
   }
 }
 
