@@ -13,8 +13,12 @@ import org.littleshoot.proxy.impl.DefaultHttpProxyServer
 import org.littleshoot.proxy.{HttpFilters, HttpFiltersAdapter, HttpFiltersSourceAdapter}
 import play.api.libs.json.{JsArray, JsValue, Json}
 
+import com.github.noahshen.mycodefactory.littleproxy.SignRecord._
+import slick.driver.MySQLDriver.api._
+
 
 object Main extends App {
+
   val server = DefaultHttpProxyServer.bootstrap()
     .withAddress(new InetSocketAddress("0.0.0.0", 7878))
     .withFiltersSource(new SignFilterAdapter)
@@ -40,7 +44,6 @@ class LoadLocationFilter(request: HttpRequest, ctx: ChannelHandlerContext) exten
   override def requestPre(obj: HttpObject): HttpResponse = {
     obj match {
       case res: DefaultHttpRequest =>
-
         import com.netaporter.uri.dsl._
 
         val uri: Uri = res.getUri
@@ -120,37 +123,15 @@ class SignFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpF
             val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
             val signTime = sdf.parse(timeOpt.get)
             println(s"${nameOpt.get} sign at ${signTime}")
+
+            SignRecords += (None, nameOpt.get, new java.sql.Date(signTime.getTime), new java.sql.Date(System.currentTimeMillis()))
           }
         }
-//        val userInfo = parseUserInfo(resultJson)
-//        println(userInfo)
+
       }
     }
     obj
   }
-//
-//  def parseUserInfo(resultJson: Option[Any]): Option[SignedUserInfo] = {
-//    var employeeName: Option[String] = None
-//    var signTime: Option[Date] = None
-//    resultJson match {
-//      case Some(json: Map[String, Any]) =>
-//        json.get("data").map {  =>
-//          case signRecords: List =>
-//            signRecords.headOption.map {
-//              case Some(("name", name:String)) =>
-//                employeeName = Some(name)
-//              case Some(("time", time:String)) =>
-//                val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
-//                signTime = Some(sdf.parse(time))
-//            }
-//        }
-//      case None => None
-//    }
-//    if (employeeName.isDefined && signTime.isDefined) {
-//      return Some(SignedUserInfo(employeeName.get, signTime.get))
-//    }
-//    return None
-//  }
 }
 
 class SignFilterAdapter extends HttpFiltersSourceAdapter {
