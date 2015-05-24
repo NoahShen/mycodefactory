@@ -1,48 +1,43 @@
 package com.github.noahshen.mycodefactory.littleproxy
 
-import java.sql.Date
+import java.sql.{Timestamp, Date}
 import slick.driver.MySQLDriver.api._
+import scala.concurrent.duration.Duration
+import scala.concurrent.Await
 
 /**
  * Created by noahshen on 15/5/23.
  */
-// Definition of the SUPPLIERS table
-class SignRecord(tag: Tag) extends Table[(Option[Int], String, Date, Date)](tag, "SIGN_RECORD") {
-  def id = column[Int]("RECORD_ID", O.PrimaryKey) // This is the primary key column
-  def name = column[String]("NAME")
-  def signTime = column[Date]("SIGN_TIME")
-  def addTime = column[Date]("ADD_TIME")
-  // Every table needs a * projection with the same type as the table's type parameter
-  def * = (id.?, name, signTime, addTime)
-}
-
-object SignRecord {
-  val SignRecords = TableQuery[SignRecord]
-}
-
-
-object Main extends App {
-  val signRecords = TableQuery[SignRecord]
-
-
-  val db = Database.forConfig("mysqltest")
-  try {
-    val setup = DBIO.seq(
-      // Create the tables, including primary and foreign keys
-      (signRecords.schema).create,
-
-      // Insert some suppliers
-      signRecords += (None, "Noah", new Date(System.currentTimeMillis()), new Date(System.currentTimeMillis()))
-      // Equivalent SQL code:
-      // insert into SIGN_RECORD(SUP_ID, SUP_NAME, STREET, CITY, STATE, ZIP) values (?,?,?,?,?,?)
-
-    )
-
-    val setupFuture = db.run(setup)
-//    setupFuture.onSuccess {
-//      case _ => println("create success")
-//    }
-  } finally {
-    db.close
-  }
-}
+//
+//case class SignRecord(id: Option[Int] = None, name: String, signTime: Timestamp, addTime: Timestamp)
+//
+//class SignRecords(tag: Tag) extends Table[SignRecord](tag, "SIGN_RECORD") {
+//  def id = column[Int]("RECORD_ID", O.PrimaryKey, O.AutoInc) // This is the primary key column
+//  def name = column[String]("NAME")
+//  def signTime = column[Timestamp]("SIGN_TIME")
+//  def addTime = column[Timestamp]("ADD_TIME")
+//  // Every table needs a * projection with the same type as the table's type parameter
+//  def * = (id.?, name, signTime, addTime) <> (SignRecord.tupled, SignRecord.unapply)
+//}
+//
+//object SignRecords {
+//  val SignRecords = TableQuery[SignRecords]
+//}
+//
+////
+//object Main extends App {
+//  val signRecords = TableQuery[SignRecords]
+//
+//  // Print the SQL for the filter query
+//
+//  // Execute the query and print the Seq of results
+//
+//  val db = Database.forConfig("mysqltest")
+//  try {
+//    Await.result(db.run(DBIO.seq(
+//      (signRecords returning signRecords.map(_.id)) += SignRecord(None, "Noah", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()))
+//    )), Duration.Inf)
+//  } finally {
+//    db.close
+//  }
+//}

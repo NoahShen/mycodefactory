@@ -1,8 +1,9 @@
 package com.github.noahshen.mycodefactory.littleproxy
 
 
-import java.net.{URI, InetSocketAddress}
+import java.net.InetSocketAddress
 import java.nio.charset.Charset
+import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -11,19 +12,12 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http._
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer
 import org.littleshoot.proxy.{HttpFilters, HttpFiltersAdapter, HttpFiltersSourceAdapter}
+import org.squeryl.PrimitiveTypeMode._
+import org.squeryl.adapters.MySQLAdapter
+import org.squeryl.{Session, SessionFactory}
 import play.api.libs.json.{JsArray, JsValue, Json}
 
-import com.github.noahshen.mycodefactory.littleproxy.SignRecord._
 import slick.driver.MySQLDriver.api._
-
-
-object Main extends App {
-
-  val server = DefaultHttpProxyServer.bootstrap()
-    .withAddress(new InetSocketAddress("0.0.0.0", 7878))
-    .withFiltersSource(new SignFilterAdapter)
-  server.start()
-}
 
 class DefaultFilter extends HttpFilters {
   override def responsePre(httpObject: HttpObject): HttpObject = {httpObject}
@@ -110,7 +104,6 @@ class SignFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpF
    * @return
    */
   override def responsePost(obj: HttpObject): HttpObject = {
-    // TODO save response
     ContentResult.fromObject(obj).foreach { result =>
       builder.append(result.content)
       if (result.last) {
@@ -124,7 +117,9 @@ class SignFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpF
             val signTime = sdf.parse(timeOpt.get)
             println(s"${nameOpt.get} sign at ${signTime}")
 
-            SignRecords += (None, nameOpt.get, new java.sql.Date(signTime.getTime), new java.sql.Date(System.currentTimeMillis()))
+            inTransaction {
+              Library.signRecords.insert(new SignRecord(0, nameOpt.get, new Timestamp(signTime.getTime), new Timestamp(System.currentTimeMillis())))
+            }
           }
         }
 
@@ -134,17 +129,6 @@ class SignFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpF
   }
 }
 
-class SignFilterAdapter extends HttpFiltersSourceAdapter {
-
-  override def filterRequest(orig: HttpRequest, ctx: ChannelHandlerContext): HttpFilters = {
-    if (orig.getUri.startsWith(LoadLocationFilter.LoadLocationUrl)) {
-      return new LoadLocationFilter(orig, ctx)
-    } else if (orig.getUri.startsWith(SignFilter.SignUrl)){
-      return new SignFilter(orig, ctx)
-    }
-    return new DefaultFilter
-  }
-}
 
 case class ContentResult(last: Boolean, content: String)
 
@@ -165,3 +149,36 @@ object ContentResult {
     cont.content().toString(Charset.forName("UTF-8"))
   }
 }
+
+class SignFilterAdapter extends HttpFiltersSourceAdapter {
+
+  override def filterRequest(orig: HttpRequest, ctx: ChannelHandlerContext): HttpFilters = {
+    val socketAddress = ctx.channel().remoteAddress()
+    println(socketAddress)
+    if (orig.getUri.startsWith(LoadLocationFilter.LoadLocationUrl)) {
+      return new LoadLocationFilter(orig, ctx)
+    } else if (orig.getUri.startsWith(SignFilter.SignUrl)){
+      return new SignFilter(orig, ctx)
+    }
+    return new DefaultFilter
+  }
+}
+
+
+
+object ProxyMain extends App {
+
+  Class.forName("com.mysql.jdbc.Driver")
+  val url = "jdbc:mysql://noahsara.com:13306/grabit?useUnicode=yes&characterEncoding=utf8"
+  val user = "nike"
+  val password = "store"
+  SessionFactory.concreteFactory = Some(()=>
+    Session.create(java.sql.DriverManager.getConnection(url, user, password), new MySQLAdapter)
+  )
+
+  val server = DefaultHttpProxyServer.bootstrap()
+    .withAddress(new InetSocketAddress("0.0.0.0", 7878))
+    .withFiltersSource(new SignFilterAdapter)
+  server.start()
+}
+

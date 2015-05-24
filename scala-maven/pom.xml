@@ -40,6 +40,12 @@
     -->
 
     <dependencies>
+        <dependency>
+            <groupId>org.squeryl</groupId>
+            <artifactId>squeryl_2.10</artifactId>
+            <version>0.9.5-7</version>
+        </dependency>
+
 
         <dependency>
             <groupId>mysql</groupId>
