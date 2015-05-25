@@ -166,7 +166,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>com.github.noahshen.mycodefactory.littleproxy.Main</mainClass>
+                            <mainClass>com.github.noahshen.mycodefactory.littleproxy.ProxyMain</mainClass>
                             <addClasspath>true</addClasspath>
                         </manifest>
                     </archive>

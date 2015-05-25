@@ -168,6 +168,8 @@ class SignFilterAdapter extends HttpFiltersSourceAdapter {
 
 object ProxyMain extends App {
 
+  override val args: Array[String] = if (super.args.isEmpty) Array("7878") else super.args
+
   Class.forName("com.mysql.jdbc.Driver")
   val url = "jdbc:mysql://noahsara.com:13306/grabit?useUnicode=yes&characterEncoding=utf8"
   val user = "nike"
@@ -175,9 +177,9 @@ object ProxyMain extends App {
   SessionFactory.concreteFactory = Some(()=>
     Session.create(java.sql.DriverManager.getConnection(url, user, password), new MySQLAdapter)
   )
-
+  val port = args(0).toInt
   val server = DefaultHttpProxyServer.bootstrap()
-    .withAddress(new InetSocketAddress("0.0.0.0", 7878))
+    .withAddress(new InetSocketAddress("0.0.0.0", port))
     .withFiltersSource(new SignFilterAdapter)
   server.start()
 }
