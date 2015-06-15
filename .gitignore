@@ -28,3 +28,8 @@ _testmain.go
 target
 .idea
 .DS_Store
+github.com
+bin/
+shadowsocks-monitor
+*.log
+build/
