@@ -12,12 +12,12 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http._
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer
 import org.littleshoot.proxy.{HttpFilters, HttpFiltersAdapter, HttpFiltersSourceAdapter}
-import org.squeryl.PrimitiveTypeMode._
-import org.squeryl.adapters.MySQLAdapter
-import org.squeryl.{Session, SessionFactory}
 import play.api.libs.json.{JsArray, JsValue, Json}
 
-import slick.driver.MySQLDriver.api._
+
+import scalikejdbc._
+
+
 
 class DefaultFilter extends HttpFilters {
   override def responsePre(httpObject: HttpObject): HttpObject = {httpObject}
@@ -117,9 +117,10 @@ class SignFilter(request: HttpRequest, ctx: ChannelHandlerContext) extends HttpF
             val signTime = sdf.parse(timeOpt.get)
             println(s"${nameOpt.get} sign at ${signTime}")
 
-            inTransaction {
-              Library.signRecords.insert(new SignRecord(0, nameOpt.get, new Timestamp(signTime.getTime), new Timestamp(System.currentTimeMillis())))
-            }
+            // ad-hoc session provider on the REPL
+            implicit val session = AutoSession
+            sql"insert into SIGN_RECORD (NAME, SIGN_TIME) values (${nameOpt.get}, ${new Timestamp(signTime.getTime)})".update.apply()
+
           }
         }
 
@@ -168,15 +169,19 @@ class SignFilterAdapter extends HttpFiltersSourceAdapter {
 
 object ProxyMain extends App {
 
-  override val args: Array[String] = if (super.args.isEmpty) Array("7878") else super.args
+  override val args: Array[String] = if (super.args.isEmpty) Array("7878", "xxx", "xx", "xx") else super.args
 
+  // initialize JDBC driver & connection pool
   Class.forName("com.mysql.jdbc.Driver")
-  val url = "jdbc:mysql://noahsara.com:13306/grabit?useUnicode=yes&characterEncoding=utf8"
-  val user = "nike"
-  val password = "store"
-  SessionFactory.concreteFactory = Some(()=>
-    Session.create(java.sql.DriverManager.getConnection(url, user, password), new MySQLAdapter)
-  )
+
+  val dbHost = args(1).toString
+  val user = args(2).toString
+  val password = args(3).toString
+
+  val url = s"jdbc:mysql://${dbHost}:13306/grabit?useUnicode=yes&characterEncoding=utf8"
+
+  ConnectionPool.singleton(url, user, password)
+
   val port = args(0).toInt
   val server = DefaultHttpProxyServer.bootstrap()
     .withAddress(new InetSocketAddress("0.0.0.0", port))

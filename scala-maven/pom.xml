@@ -41,9 +41,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.squeryl</groupId>
-            <artifactId>squeryl_2.10</artifactId>
-            <version>0.9.5-7</version>
+            <groupId>org.scalikejdbc</groupId>
+            <artifactId>scalikejdbc_2.10</artifactId>
+            <version>2.2.7</version>
         </dependency>
 
 
